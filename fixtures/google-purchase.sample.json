@@ -1,0 +1,9 @@
+{
+  "kind": "androidpublisher#productPurchase",
+  "purchaseTimeMillis": "1754400000000",
+  "purchaseState": 0,
+  "consumptionState": 0,
+  "acknowledgementState": 0,
+  "orderId": "GPA.3300-1234-5678-90123",
+  "purchaseType": 0
+}

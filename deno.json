@@ -1,0 +1,9 @@
+{
+  "tasks": {
+    "serve:verify": "deno run --allow-net --allow-env --allow-read supabase/functions/verify-purchase/index.ts",
+    "serve:version": "deno run --allow-net --allow-env --allow-read supabase/functions/app-version/index.ts",
+    "test": "deno test --allow-read --allow-env"
+  },
+  "fmt": { "useTabs": false, "lineWidth": 100 },
+  "lock": false
+}

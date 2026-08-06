@@ -1,0 +1,16 @@
+{
+  "status": 0,
+  "environment": "Production",
+  "receipt": {
+    "bundle_id": "com.commutepass.app",
+    "in_app": [
+      {
+        "product_id": "credits_100",
+        "transaction_id": "2000000501234567",
+        "original_transaction_id": "2000000501234567",
+        "purchase_date_ms": "1754400000000",
+        "quantity": "1"
+      }
+    ]
+  }
+}
