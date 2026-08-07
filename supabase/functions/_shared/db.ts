@@ -67,3 +67,58 @@ export async function creditAccount(
     values (${userId}, ${credits}, 'purchase', ${purchaseId})
   `;
 }
+
+export interface PurchaseOutcome {
+  alreadyProcessed: boolean;
+  purchaseId: string | null;
+}
+
+// Records a purchase and credits the account inside a single transaction. The
+// dedup check (existing transaction) and the credit are atomic, so two
+// concurrent submissions of the same receipt cannot both credit. A unique index
+// on provider_transaction_id (see migration 0004) is the backstop: if a racing
+// request inserts first, this insert throws a 23505 unique violation.
+export async function recordPurchaseAndCredit(o: {
+  userId: string;
+  platform: string;
+  productId: string;
+  providerTxnId: string | null;
+  credits: number;
+  rawReceipt: string;
+}): Promise<PurchaseOutcome> {
+  return await sql.begin(async (tx: postgres.Sql) => {
+    const existing = o.providerTxnId
+      ? await tx<PurchaseRow[]>`
+          select id, user_id, product_id, provider_transaction_id, credits_granted
+          from purchases
+          where provider_transaction_id = ${o.providerTxnId}
+          limit 1
+        `
+      : null;
+
+    if (existing && existing[0]) {
+      return { alreadyProcessed: true, purchaseId: existing[0].id };
+    }
+
+    const inserted = await tx<{ id: string }[]>`
+      insert into purchases
+        (user_id, platform, product_id, provider_transaction_id, credits_granted, raw_receipt)
+      values
+        (${o.userId}, ${o.platform}, ${o.productId}, ${o.providerTxnId}, ${o.credits}, ${o.rawReceipt})
+      returning id
+    `;
+    const purchaseId = inserted[0].id;
+
+    await tx`
+      update credit_balances
+      set balance = balance + ${o.credits}, updated_at = now()
+      where user_id = ${o.userId}
+    `;
+    await tx`
+      insert into credit_ledger (user_id, delta, reason, purchase_id)
+      values (${o.userId}, ${o.credits}, 'purchase', ${purchaseId})
+    `;
+
+    return { alreadyProcessed: false, purchaseId };
+  });
+}

@@ -13,6 +13,7 @@ export interface GoogleVerifyResult {
   productId: string | null;
   purchaseState: number | null;        // 0 = purchased, 1 = canceled, 2 = pending
   acknowledgementState: number | null; // 0 = not acked, 1 = acked
+  consumptionState: number | null;     // 0 = not consumed, 1 = consumed
 }
 
 async function playApiToken(): Promise<string> {
@@ -40,12 +41,16 @@ export async function verifyGooglePurchase(
     json = await res.json();
   }
 
+  const ok = json.purchaseState === 0;
   return {
-    ok: json.purchaseState === 0,
-    orderId: json.orderId ?? null,
+    ok,
+    // Only surface a transaction id when the purchase is genuinely valid, so a
+    // canceled/pending purchase can never be used to dedup or credit.
+    orderId: ok ? (json.orderId ?? null) : null,
     productId: productId,
     purchaseState: json.purchaseState ?? null,
     acknowledgementState: json.acknowledgementState ?? null,
+    consumptionState: json.consumptionState ?? null,
   };
 }
 
