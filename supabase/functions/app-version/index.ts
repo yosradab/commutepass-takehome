@@ -13,6 +13,7 @@
 // clearly on an old build." Left as-is for now.
 
 import { sql } from "../_shared/db.ts";
+import { compareVersions } from "../_shared/version.ts";
 
 function json(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
@@ -37,8 +38,9 @@ Deno.serve(async (req: Request): Promise<Response> => {
 
   const cfg = rows[0];
 
-  // Force update if the current version is behind the minimum supported one.
-  const forceUpdate = current < cfg.min_supported_version;
+  // Force update if the current (running) version is behind the minimum
+  // supported one. Comparison is numeric (semver), not lexicographic.
+  const forceUpdate = compareVersions(current, cfg.min_supported_version) < 0;
 
   return json({
     latestVersion: cfg.latest_version,
